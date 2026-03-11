@@ -32,27 +32,27 @@ impl FromStr for ToolArg {
     type Err = eyre::Error;
 
     fn from_str(input: &str) -> eyre::Result<Self> {
-        let (backend_input, version) = parse_input(input);
+        let (backend_input, parsed_version) = parse_input(input);
 
         let ba: Arc<BackendArg> = Arc::new(backend_input.into());
-        let version = version.map(|v| v.to_string()).or_else(|| {
+        let resolved_version = parsed_version.map(|v| v.to_string()).or_else(|| {
             ba.opts
                 .as_ref()
                 .and_then(|opts| opts.get("version").map(|v| v.to_string()))
         });
 
-        let version_type = match version.as_ref() {
-            Some(version) => version.parse()?,
+        let version_type = match resolved_version.as_ref() {
+            Some(v) => v.parse()?,
             None => ToolVersionType::Version(String::from("latest")),
         };
-        let tvr = version
+        let tvr = resolved_version
             .as_ref()
             .map(|v| ToolRequest::new(ba.clone(), v, ToolSource::Argument))
             .transpose()?;
         Ok(Self {
             short: ba.short.clone(),
             tvr,
-            version,
+            version: resolved_version,
             version_type,
             ba,
         })
