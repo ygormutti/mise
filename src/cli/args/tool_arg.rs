@@ -244,6 +244,28 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_tool_arg_with_bracket_version() {
+        let _config = Config::get().await.unwrap();
+        // The ToolRequest should receive the version passed inside the bracket options.
+        // Also checks that 'opts' is populated in the BackendArg.
+        let tool = ToolArg::from_str("node[version=20]").unwrap();
+
+        let expected_ba = BackendArg::new("node[version=20]".into(), None);
+        assert_eq!(
+            tool,
+            ToolArg {
+                short: "node".into(),
+                ba: Arc::new(expected_ba.clone()),
+                version: Some("20".into()),
+                version_type: ToolVersionType::Version("20".into()),
+                tvr: Some(
+                    ToolRequest::new(Arc::new(expected_ba), "20", ToolSource::Argument).unwrap()
+                ),
+            }
+        );
+    }
+
+    #[tokio::test]
     async fn test_tool_arg_with_version_and_alias() {
         let _config = Config::get().await.unwrap();
         let tool = ToolArg::from_str("nodejs@lts").unwrap();
