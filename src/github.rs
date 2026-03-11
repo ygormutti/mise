@@ -156,7 +156,7 @@ async fn list_releases_(api_url: &str, repo: &str) -> Result<Vec<GithubRelease>>
             headers = h;
         }
     }
-    releases.retain(|r| !r.draft && !r.prerelease);
+    releases.retain(|r| !r.draft);
 
     Ok(releases)
 }
