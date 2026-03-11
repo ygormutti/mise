@@ -520,11 +520,6 @@ impl Backend for AquaBackend {
                 if query == v {
                     return true;
                 }
-                if query.strip_prefix('v').unwrap_or(query) == v
-                    || query.strip_prefix('V').unwrap_or(query) == v
-                {
-                    return true;
-                }
                 if VERSION_REGEX.is_match(v) {
                     return false;
                 }
