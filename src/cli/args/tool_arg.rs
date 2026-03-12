@@ -35,24 +35,24 @@ impl FromStr for ToolArg {
         let (backend_input, at_version) = parse_input(input);
 
         let ba: Arc<BackendArg> = Arc::new(backend_input.into());
-        let resolved_version = ba
+        let version = ba
             .opts
             .as_ref()
             .and_then(|opts| opts.get("version").map(|v| v.to_string()))
             .or_else(|| at_version.map(|v| v.to_string()));
 
-        let version_type = match resolved_version.as_ref() {
+        let version_type = match version.as_ref() {
             Some(v) => v.parse()?,
             None => ToolVersionType::Version(String::from("latest")),
         };
-        let tvr = resolved_version
+        let tvr = version
             .as_ref()
             .map(|v| ToolRequest::new(ba.clone(), v, ToolSource::Argument))
             .transpose()?;
         Ok(Self {
             short: ba.short.clone(),
             tvr,
-            version: resolved_version,
+            version,
             version_type,
             ba,
         })
