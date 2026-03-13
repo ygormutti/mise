@@ -32,11 +32,17 @@ impl FromStr for ToolArg {
     type Err = eyre::Error;
 
     fn from_str(input: &str) -> eyre::Result<Self> {
-        let (backend_input, version) = parse_input(input);
+        let (backend_input, at_version) = parse_input(input);
 
         let ba: Arc<BackendArg> = Arc::new(backend_input.into());
+        let version = ba
+            .opts
+            .as_ref()
+            .and_then(|opts| opts.get("version").map(|v| v.to_string()))
+            .or_else(|| at_version.map(|v| v.to_string()));
+
         let version_type = match version.as_ref() {
-            Some(version) => version.parse()?,
+            Some(v) => v.parse()?,
             None => ToolVersionType::Version(String::from("latest")),
         };
         let tvr = version
@@ -46,7 +52,7 @@ impl FromStr for ToolArg {
         Ok(Self {
             short: ba.short.clone(),
             tvr,
-            version: version.map(|v| v.to_string()),
+            version,
             version_type,
             ba,
         })
@@ -232,6 +238,44 @@ mod tests {
                 version_type: ToolVersionType::Version("20".into()),
                 tvr: Some(
                     ToolRequest::new(Arc::new("node".into()), "20", ToolSource::Argument).unwrap()
+                ),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_tool_arg_with_bracket_version() {
+        let _config = Config::get().await.unwrap();
+        // The ToolRequest should receive the version passed inside the bracket options.
+        // Also checks that 'opts' is populated in the BackendArg.
+        let tool = ToolArg::from_str("node[version=20]").unwrap();
+
+        let expected_ba = BackendArg::new("node[version=20]".into(), None);
+        assert_eq!(
+            tool,
+            ToolArg {
+                short: "node".into(),
+                ba: Arc::new(expected_ba.clone()),
+                version: Some("20".into()),
+                version_type: ToolVersionType::Version("20".into()),
+                tvr: Some(
+                    ToolRequest::new(Arc::new(expected_ba), "20", ToolSource::Argument).unwrap()
+                ),
+            }
+        );
+
+        // Test that bracket version is prioritized over @ syntax
+        let tool_override = ToolArg::from_str("node[version=20]@18").unwrap();
+        let expected_ba_override = BackendArg::new("node[version=20]".into(), None);
+        assert_eq!(
+            tool_override,
+            ToolArg {
+                short: "node".into(),
+                ba: Arc::new(expected_ba_override.clone()),
+                version: Some("20".into()),
+                version_type: ToolVersionType::Version("20".into()),
+                tvr: Some(
+                    ToolRequest::new(Arc::new(expected_ba_override), "20", ToolSource::Argument).unwrap()
                 ),
             }
         );
